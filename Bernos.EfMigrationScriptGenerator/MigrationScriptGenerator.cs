@@ -29,7 +29,7 @@ namespace Bernos.EfMigrationScriptGenerator
             }
         }
 
-        public string GenerateMigrationSql()
+        public string GenerateMigrationSql(string targetMigration)
         {
             var configuration = GetMigrationConfiguration(_entityFrameworkAssembly, _migrationAssembly, _connectionString, _providerName);
             var migrator = GetMigrator(_entityFrameworkAssembly, configuration);
@@ -40,7 +40,10 @@ namespace Bernos.EfMigrationScriptGenerator
 
             if (pendingMigrations.Length > 0)
             {
-                var targetMigration = pendingMigrations[pendingMigrations.Length - 1];
+                if (string.IsNullOrEmpty(targetMigration))
+                {
+                    targetMigration = pendingMigrations[pendingMigrations.Length - 1];
+                }
 
                 for (var i = 0; i < allMigrations.Length; i++)
                 {
