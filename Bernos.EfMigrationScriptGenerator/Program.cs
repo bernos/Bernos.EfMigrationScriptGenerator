@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Text;
 using NDesk.Options;
 
 namespace Bernos.EfMigrationScriptGenerator
@@ -69,6 +66,7 @@ namespace Bernos.EfMigrationScriptGenerator
 
             if (!string.IsNullOrEmpty(outputFile))
             {
+                Console.WriteLine("Writing sql to {0}", outputFile);
                 File.WriteAllText(outputFile, sql);
             }
             else
@@ -79,7 +77,7 @@ namespace Bernos.EfMigrationScriptGenerator
 
         static void ShowHelp(OptionSet p)
         {
-            Console.WriteLine("Usage: Bernos.EfMigrationScriptGenerator.exe [OPTIONS]+ message");
+            Console.WriteLine("Usage:ScriptMigrations.exe [OPTIONS]+ message");
             Console.WriteLine("Generate sql script from Entity Framework code-first migrations.");
             Console.WriteLine("If no message is specified, a generic greeting is used.");
             Console.WriteLine();

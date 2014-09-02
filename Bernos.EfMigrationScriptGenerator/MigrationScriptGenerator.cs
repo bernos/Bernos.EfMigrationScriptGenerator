@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -11,6 +12,13 @@ namespace Bernos.EfMigrationScriptGenerator
         private readonly Assembly _entityFrameworkAssembly;
         private readonly string _connectionString;
         private readonly string _providerName;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="migrationAssembly"></param>
+        /// <param name="connectionString"></param>
+        /// <param name="providerName"></param>
         public MigrationScriptGenerator(Assembly migrationAssembly, string connectionString, string providerName)
         {
             _migrationAssembly = migrationAssembly;
@@ -29,11 +37,15 @@ namespace Bernos.EfMigrationScriptGenerator
             }
         }
 
+        /// <summary>
+        /// Returns sql statements necessary to update the database to the specified target migration
+        /// </summary>
+        /// <param name="targetMigration"></param>
+        /// <returns></returns>
         public string GenerateMigrationSql(string targetMigration)
         {
             var configuration = GetMigrationConfiguration(_entityFrameworkAssembly, _migrationAssembly, _connectionString, _providerName);
             var migrator = GetMigrator(_entityFrameworkAssembly, configuration);
-            
             var allMigrations = migrator.GetLocalMigrations().ToArray();
             var pendingMigrations = migrator.GetPendingMigrations().ToArray();
             var sourceMigration = "";
@@ -53,10 +65,13 @@ namespace Bernos.EfMigrationScriptGenerator
                     }
                 }
 
+                var cs = new SqlConnectionStringBuilder(_connectionString);
                 var scriptor = Activator.CreateInstance(_entityFrameworkAssembly.GetType("System.Data.Entity.Migrations.Infrastructure.MigratorScriptingDecorator"), migrator);
 
                 var sb = new StringBuilder();
                 sb.AppendLine(string.Format("-- Migration script generated {0}", DateTime.Now));
+                sb.AppendLine(string.Format("-- Server: {0}", cs.DataSource));
+                sb.AppendLine(string.Format("-- Database: {0}", cs.InitialCatalog));
                 sb.AppendLine(string.Format("-- Source Migration: {0}", sourceMigration));
                 sb.AppendLine(string.Format("-- Target Migration: {0}", targetMigration));
                 sb.AppendLine("");
@@ -67,6 +82,16 @@ namespace Bernos.EfMigrationScriptGenerator
             return "-- No pending migrations to run. Db is up to date";
         }
 
+        /// <summary>
+        /// Locates and constructs an instance of a DbMigrationsConfiguration class found in the provided assembly. We
+        /// return this dynamic to avoid linking against the entity framework dll directly. This means that users of 
+        /// our .exe can 'BYO' the version of the entity framework dll that their own migration dll was compiled against
+        /// </summary>
+        /// <param name="entityFrameworkAssembly"></param>
+        /// <param name="migrationAssembly"></param>
+        /// <param name="connectionString"></param>
+        /// <param name="providerName"></param>
+        /// <returns></returns>
         private dynamic GetMigrationConfiguration(Assembly entityFrameworkAssembly, Assembly migrationAssembly, string connectionString, string providerName)
         {
             var dbMigrationsConfigurationType =
@@ -91,6 +116,14 @@ namespace Bernos.EfMigrationScriptGenerator
             return null;
         }
 
+        /// <summary>
+        /// Constructs an instance of System.Data.Entity.Migrations.DbMigrator.  We
+        /// return this dynamic to avoid linking against the entity framework dll directly. This means that users of 
+        /// our .exe can 'BYO' the version of the entity framework dll that their own migration dll was compiled against
+        /// </summary>
+        /// <param name="entityFrameworkAssembly"></param>
+        /// <param name="migrationConfiguration"></param>
+        /// <returns></returns>
         private dynamic GetMigrator(Assembly entityFrameworkAssembly, dynamic migrationConfiguration)
         {
             var type = entityFrameworkAssembly.GetType("System.Data.Entity.Migrations.DbMigrator");
